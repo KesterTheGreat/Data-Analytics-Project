@@ -106,6 +106,9 @@ for col in cols:
 Lifeexp3 = Lifeexpz[(Lifeexpz.apply(stats.zscore)>-3) & (Lifeexpz.apply(stats.zscore)<3)]
 print(Lifeexp3)
 
+#identify the number of missing values after removing outliers
+No_of_MissingValues2 = Lifeexp3.isnull().sum()  
+print(No_of_MissingValues2)
 
 
 #Utilizing interpolate again to treat removed outliers
