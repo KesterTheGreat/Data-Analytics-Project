@@ -68,6 +68,8 @@ Lifeexp.drop(columns='BMI', inplace=True)
 unique_values = Lifeexp.nunique()
 print(unique_values)
 
+
+
 Lifeexp1 = []
 
 for year in list(Lifeexp.Year.unique()):
@@ -78,6 +80,7 @@ for year in list(Lifeexp.Year.unique()):
 
     Lifeexp1.append(year_data)
 Lifeexp1 = pd.concat(Lifeexp1).copy()
+
 #Make sure missing values have been treated and filled
 Lifeexp1.isnull().sum()
 print(Lifeexp1)
@@ -101,6 +104,7 @@ lifeexp_dict = {'Life_Exp':1,'A_Mortality':2,
             'Total_Exp':10,'Diphtheria':11,'HIV/AIDS':12,
             'GDP':13,'Population':14,'thin_1-19':15,
             'thin_5-9':16,'Income_Comp_Of_Res':17,'Schooling':18}
+
 # Detect outliers in each variable using box plots.
 plt.figure(figsize=(20,30))
 
@@ -130,7 +134,9 @@ plt.show()
 
 #--------------------------------------------------------------------
 
-def outlier_count(col, data=Lifeexp1):
+#Finding the amount and percentage of outliers in each variable
+
+def no_of_outliers(col, data=Lifeexp1):
     
     print("\n"+15*'-' + col + 15*'-'+"\n")
     
@@ -138,13 +144,13 @@ def outlier_count(col, data=Lifeexp1):
     iqr = q75 - q25
     min_val = q25 - (iqr*1.5)
     max_val = q75 + (iqr*1.5)
-    outlier_count = len(np.where((data[col] > max_val) | (data[col] < min_val))[0])
-    outlier_percent = round(outlier_count/len(data[col])*100, 2)
-    print('Number of outliers: {}'.format(outlier_count))
-    print('Percent of data that is outlier: {}%'.format(outlier_percent))
-cont_vars = list(Lifeexp2)
-for col in cont_vars:
-    outlier_count(col)
+    no_of_outliers = len(np.where((data[col] > max_val) | (data[col] < min_val))[0])
+    pct_of_outliers = round(no_of_outliers/len(data[col])*100, 2)
+    print('Number of outliers: {}'.format(no_of_outliers))
+    print('Percent of data that is outlier: {}%'.format(pct_of_outliers))
+outlier_list = list(Lifeexp2)
+for col in outlier_list:
+    no_of_outliers(col)
     
 #Descriptive statistics
 print(Lifeexp2.describe())
@@ -162,65 +168,66 @@ for col in cols:
 
 
 
+#Utilizing the winsorization method we will replace outliers.
 
 from scipy.stats.mstats import winsorize
 
-winsorized_Life_Expectancy = winsorize(Lifeexp1['Life_Exp'],(0.01,0))
-winsorized_Adult_Mortality = winsorize(Lifeexp1['A_Mortality'],(0,0.04))
-winsorized_Infant_Deaths = winsorize(Lifeexp1['Infant_Deaths'],(0,0.05))
-winsorized_Alcohol = winsorize(Lifeexp1['Alcohol'],(0,0.0025))
-winsorized_Percentage_Exp = winsorize(Lifeexp1['Pct_Exp'],(0,0.135))
-winsorized_HepatitisB = winsorize(Lifeexp1['HepatitisB'],(0.1,0))
-winsorized_Measles = winsorize(Lifeexp1['Measles'],(0,0.19))
-winsorized_Under_Five_Deaths = winsorize(Lifeexp1['Under_Five_Deaths'],(0,0.05))
-winsorized_Polio = winsorize(Lifeexp1['Polio'],(0.1,0))
-winsorized_Tot_Exp = winsorize(Lifeexp1['Total_Exp'],(0,0.02))
-winsorized_Diphtheria = winsorize(Lifeexp1['Diphtheria'],(0.105,0))
-winsorized_HIV = winsorize(Lifeexp1['HIV/AIDS'],(0,0.185))
-winsorized_GDP = winsorize(Lifeexp1['GDP'],(0,0.105))
-winsorized_Population = winsorize(Lifeexp1['Population'],(0,0.07))
-winsorized_thinness_1to19_years = winsorize(Lifeexp1['thin_1-19'],(0,0.035))
-winsorized_thinness_5to9_years = winsorize(Lifeexp1['thin_5-9'],(0,0.035))
-winsorized_Income_Comp_Of_Resources = winsorize(Lifeexp1['Income_Comp_Of_Res'],(0.05,0))
-winsorized_Schooling = winsorize(Lifeexp1['Schooling'],(0.025,0.01))
+winsor_life_exp = winsorize(Lifeexp1['Life_Exp'],(0.01,0))
+winsor_a_mortality = winsorize(Lifeexp1['A_Mortality'],(0,0.04))
+winsor_infant_deaths = winsorize(Lifeexp1['Infant_Deaths'],(0,0.05))
+winsor_Alcohol = winsorize(Lifeexp1['Alcohol'],(0,0.0025))
+winsor_pct_exp = winsorize(Lifeexp1['Pct_Exp'],(0,0.135))
+winsor_HepatitisB = winsorize(Lifeexp1['HepatitisB'],(0.1,0))
+winsor_Measles = winsorize(Lifeexp1['Measles'],(0,0.19))
+winsor_Under_Five_Deaths = winsorize(Lifeexp1['Under_Five_Deaths'],(0,0.05))
+winsor_Polio = winsorize(Lifeexp1['Polio'],(0.1,0))
+winsor_total_exp = winsorize(Lifeexp1['Total_Exp'],(0,0.02))
+winsor_Diphtheria = winsorize(Lifeexp1['Diphtheria'],(0.105,0))
+winsor_HIV = winsorize(Lifeexp1['HIV/AIDS'],(0,0.185))
+winsor_GDP = winsorize(Lifeexp1['GDP'],(0,0.105))
+winsor_Population = winsorize(Lifeexp1['Population'],(0,0.07))
+winsor_thinness_1to19yrs = winsorize(Lifeexp1['thin_1-19'],(0,0.035))
+winsor_thinness_5to9yrs = winsorize(Lifeexp1['thin_5-9'],(0,0.035))
+winsor_Income_Comp_Of_Res = winsorize(Lifeexp1['Income_Comp_Of_Res'],(0.05,0))
+winsor_Schooling = winsorize(Lifeexp1['Schooling'],(0.025,0.01))
 
 
-Lifeexp1['winsorized_Life_Expectancy'] = winsorized_Life_Expectancy
-Lifeexp1['winsorized_Adult_Mortality'] = winsorized_Adult_Mortality
-Lifeexp1['winsorized_Infant_Deaths'] = winsorized_Infant_Deaths
-Lifeexp1['winsorized_Alcohol'] = winsorized_Alcohol
-Lifeexp1['winsorized_Percentage_Exp'] = winsorized_Percentage_Exp
-Lifeexp1['winsorized_HepatitisB'] = winsorized_HepatitisB
-Lifeexp1['winsorized_Measles'] = winsorized_Measles
-Lifeexp1['winsorized_Under_Five_Deaths'] = winsorized_Under_Five_Deaths
-Lifeexp1['winsorized_Polio'] = winsorized_Polio
-Lifeexp1['winsorized_Tot_Exp'] = winsorized_Tot_Exp
-Lifeexp1['winsorized_Diphtheria'] = winsorized_Diphtheria
-Lifeexp1['winsorized_HIV'] = winsorized_HIV
-Lifeexp1['winsorized_GDP'] = winsorized_GDP
-Lifeexp1['winsorized_Population'] = winsorized_Population
-Lifeexp1['winsorized_thinness_1to19_years'] = winsorized_thinness_1to19_years
-Lifeexp1['winsorized_thinness_5to9_years'] = winsorized_thinness_5to9_years
-Lifeexp1['winsorized_Income_Comp_Of_Resources'] = winsorized_Income_Comp_Of_Resources
-Lifeexp1['winsorized_Schooling'] = winsorized_Schooling
+Lifeexp1['winsor_life_exp'] = winsor_life_exp
+Lifeexp1['winsor_a_mortality'] = winsor_a_mortality
+Lifeexp1['winsor_infant_deaths'] = winsor_infant_deaths
+Lifeexp1['winsor_Alcohol'] = winsor_Alcohol
+Lifeexp1['winsor_pct_exp'] = winsor_pct_exp
+Lifeexp1['winsor_HepatitisB'] = winsor_HepatitisB
+Lifeexp1['winsor_Measles'] = winsor_Measles
+Lifeexp1['winsor_Under_Five_Deaths'] = winsor_Under_Five_Deaths
+Lifeexp1['winsor_Polio'] = winsor_Polio
+Lifeexp1['winsor_total_exp'] = winsor_total_exp
+Lifeexp1['winsor_Diphtheria'] = winsor_Diphtheria
+Lifeexp1['winsor_HIV'] = winsor_HIV
+Lifeexp1['winsor_GDP'] = winsor_GDP
+Lifeexp1['winsor_Population'] = winsor_Population
+Lifeexp1['winsor_thinness_1to19yrs'] = winsor_thinness_1to19yrs
+Lifeexp1['winsor_thinness_5to9yrs'] = winsor_thinness_5to9yrs
+Lifeexp1['winsor_Income_Comp_Of_Res'] = winsor_Income_Comp_Of_Res
+Lifeexp1['winsor_Schooling'] = winsor_Schooling
 
 print(Lifeexp1)
 
 
 
-lifeexp_dict2 = {'winsorized_Life_Expectancy':1,'winsorized_Adult_Mortality':2,
-            'winsorized_Infant_Deaths':3,'winsorized_Alcohol':4,
-            'winsorized_Percentage_Exp':5,'winsorized_HepatitisB':6,'winsorized_Measles':7, 
-            'winsorized_Under_Five_Deaths':9,'winsorized_Polio':10,
-            'winsorized_Tot_Exp':11,'winsorized_Diphtheria':12,'winsorized_HIV':13,
-            'winsorized_GDP':14,'winsorized_Population':15,'winsorized_thinness_1to19_years':16,
-            'winsorized_thinness_5to9_years':17,'winsorized_Income_Comp_Of_Resources':18,'winsorized_Schooling':19}
+lifeexp_dict2 = {'winsor_life_exp':1,'winsor_a_mortality':2,
+            'winsor_infant_deaths':3,'winsor_Alcohol':4,
+            'winsor_pct_exp':5,'winsor_HepatitisB':6,'winsor_Measles':7, 
+            'winsor_Under_Five_Deaths':9,'winsor_Polio':10,
+            'winsor_total_exp':11,'winsor_Diphtheria':12,'winsor_HIV':13,
+            'winsor_GDP':14,'winsor_Population':15,'winsor_thinness_1to19yrs':16,
+            'winsor_thinness_5to9yrs':17,'winsor_Income_Comp_Of_Res':18,'winsor_Schooling':19}
 
 # Detect outliers in each variable using box plots.
 plt.figure(figsize=(15,75))
 
 for variable,i in lifeexp_dict2.items():
-                     plt.subplot(18,2,i)
+                     plt.subplot(16,6,i)
                      plt.boxplot(Lifeexp1[variable],whis=1.5)
                      plt.title(variable)
 plt.show()  
@@ -231,18 +238,18 @@ Lifeexp1.describe()
 
 
 #Histogram distributions
-lifeexp_hist2 = ['winsorized_Life_Expectancy','winsorized_Adult_Mortality',
-            'winsorized_Infant_Deaths','winsorized_Alcohol',
-            'winsorized_Percentage_Exp','winsorized_HepatitisB','winsorized_Measles',  
-            'winsorized_Under_Five_Deaths','winsorized_Polio',
-            'winsorized_Tot_Exp','winsorized_Diphtheria','winsorized_HIV',
-            'winsorized_GDP','winsorized_Population','winsorized_thinness_1to19_years',
-            'winsorized_thinness_5to9_years','winsorized_Income_Comp_Of_Resources','winsorized_Schooling']
+lifeexp_hist2 = ['winsor_life_exp','winsor_a_mortality',
+            'winsor_infant_deaths','winsor_Alcohol',
+            'winsor_pct_exp','winsor_HepatitisB','winsor_Measles',  
+            'winsor_Under_Five_Deaths','winsor_Polio',
+            'winsor_total_exp','winsor_Diphtheria','winsor_HIV',
+            'winsor_GDP','winsor_Population','winsor_thinness_1to19yrs',
+            'winsor_thinness_5to9yrs','winsor_Income_Comp_Of_Res','winsor_Schooling']
 
 plt.figure(figsize=(15,75))
 
 for i in range(len(lifeexp_hist2)):
-    plt.subplot(18,2,i+1)
+    plt.subplot(16,5,i+1)
     plt.hist(Lifeexp1[lifeexp_hist2[i]])
     plt.title(lifeexp_hist2[i])
 
