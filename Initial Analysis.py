@@ -134,7 +134,7 @@ plt.show()
 
 #--------------------------------------------------------------------
 
-#Finding the amount and percentage of outliers in each variable
+#Creating a fuction to find the amount and percentage of outliers in each variable
 
 def no_of_outliers(col, data=Lifeexp1):
     
