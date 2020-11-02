@@ -263,6 +263,66 @@ print(categ)
 
 
 
+winsor_life_exp = Lifeexp1[['Year','Status','winsor_life_exp','winsor_a_mortality',
+            'winsor_infant_deaths','winsor_Alcohol',
+            'winsor_pct_exp','winsor_HepatitisB','winsor_Measles',  
+            'winsor_Under_Five_Deaths','winsor_Polio',
+            'winsor_total_exp','winsor_Diphtheria','winsor_HIV',
+            'winsor_GDP','winsor_Population','winsor_thinness_1to19yrs',
+            'winsor_thinness_5to9yrs','winsor_Income_Comp_Of_Res','winsor_Schooling']]
+
+print(winsor_life_exp)
+
+
+# Using the winsorized dataset we will take a broad look a the rise in Life Expectancy from 2000 - 2015 using bar plot.
+plt.figure(figsize=(8,6))
+plt.bar(winsor_life_exp.groupby('Year')['Year'].count().index,
+        winsor_life_exp.groupby('Year')['winsor_life_exp'].mean(),
+        color='purple',alpha=0.80)
+plt.xlabel("Year",fontsize=10)
+plt.ylabel("Average Life Expectancy",fontsize=10)
+plt.title("Life Expectancy through the years")
+plt.show()
+
+
+# create another barplot to give us a general idea of how life expectancy levels between developed and developing countries.
+plt.figure(figsize=(8,6))
+plt.bar(winsor_life_exp.groupby('Status')['Status'].count().index,
+        winsor_life_exp.groupby('Status')['winsor_life_exp'].mean(),
+        color= 'green',alpha=0.80)
+plt.xlabel("Status",fontsize=12)
+plt.ylabel("Average Life Expectancy",fontsize=12)
+plt.title("Life Expectancy by country status")
+plt.show()
+
+
+# Life expectancy for each individual country
+life_exp_country = winsor_life_exp.groupby('Country')['winsor_life_exp'].mean()
+life_exp_country.plot(kind='bar', figsize=(50,15), fontsize=13)
+plt.xlabel("Country",fontsize=35)
+plt.ylabel("Average Life Expectancy",fontsize=35)
+plt.title("Life Expectancy of each Country",fontsize=40)
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
