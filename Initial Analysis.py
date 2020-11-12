@@ -49,6 +49,7 @@ Lifeexp["BMI"] =Lifeexp.apply(lambda x : np.nan if (x["BMI"] <10 or x["BMI"] >50
 Lifeexp["Under_Five_Deaths"] =Lifeexp["Under_Five_Deaths"].replace(0,np.nan)
 
 
+#MISSING VALUES
 
 #Lets get the percentage of missing values in each column or variable
 PctMissingValues = Lifeexp.isnull().sum()*100/Lifeexp.isnull().count()
@@ -70,7 +71,7 @@ unique_values = Lifeexp.nunique()
 print(unique_values)
 
 
-
+#Utilizing imputation we will fill the missing values for each of the year's modes
 Lifeexp1 = []
 
 for year in list(Lifeexp.Year.unique()):
@@ -82,12 +83,14 @@ for year in list(Lifeexp.Year.unique()):
     Lifeexp1.append(year_data)
 Lifeexp1 = pd.concat(Lifeexp1).copy()
 
-#Make sure missing values have been treated and filled
-Lifeexp1.isnull().sum()
-print(Lifeexp1)
 
+
+#Make sure missing values have been treated and filled
 No_of_MissingValues1 = Lifeexp1.isnull().sum()  
 print(No_of_MissingValues1)
+
+
+
 
 #Making a copy of the dataset which excludes 'Status' and 'year'
 #This will be used for accurately counting the outliers and calculating the Z-scores
@@ -194,6 +197,7 @@ winsor_thinness_5to9yrs = winsorize(Lifeexp1['thin_5-9'],(0,0.035))
 winsor_Income_Comp_Of_Res = winsorize(Lifeexp1['Income_Comp_Of_Res'],(0.10,0))
 winsor_Schooling = winsorize(Lifeexp1['Schooling'],(0.025,0.01))
 
+#Adding these new winsorized variables to the dataset
 
 Lifeexp1['winsor_life_exp'] = winsor_life_exp
 Lifeexp1['winsor_a_mortality'] = winsor_a_mortality
@@ -216,7 +220,7 @@ Lifeexp1['winsor_Schooling'] = winsor_Schooling
 
 print(Lifeexp1)
 
-
+#Second dictionary for detecting outliers after winsorization
 
 lifeexp_dict2 = {'winsor_life_exp':1,'winsor_a_mortality':2,
             'winsor_infant_deaths':3,'winsor_Alcohol':4,
@@ -266,6 +270,8 @@ print(categ)
 
 
 
+
+#Creating a dataset which includes just the winsorized variables from the full dataset.
 winsor_life_exp = Lifeexp1[['Year','Status','winsor_life_exp','winsor_a_mortality',
             'winsor_infant_deaths','winsor_Alcohol',
             'winsor_pct_exp','winsor_HepatitisB','winsor_Measles',  
