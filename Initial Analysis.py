@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from sqlalchemy import create_engine
 import warnings
 from scipy import stats
+import seaborn as sns
 warnings.filterwarnings('ignore')
 
 Lifeexp = pd.read_csv('E:\SCHOOL\CIND 820 PROJECT\Life Expectancy Data.csv', delimiter=',' ,dtype=None, index_col='Country')
@@ -76,7 +77,7 @@ for year in list(Lifeexp.Year.unique()):
     year_data = Lifeexp[Lifeexp.Year == year].copy()
     
     for col in list(year_data.columns)[2:]:
-        year_data[col] = year_data[col].fillna(year_data[col].dropna().mean()).copy()
+        year_data[col] = year_data[col].fillna(year_data[col].dropna().mode()[0]).copy()
 
     Lifeexp1.append(year_data)
 Lifeexp1 = pd.concat(Lifeexp1).copy()
@@ -85,6 +86,8 @@ Lifeexp1 = pd.concat(Lifeexp1).copy()
 Lifeexp1.isnull().sum()
 print(Lifeexp1)
 
+No_of_MissingValues1 = Lifeexp1.isnull().sum()  
+print(No_of_MissingValues1)
 
 #Making a copy of the dataset which excludes 'Status' and 'year'
 #This will be used for accurately counting the outliers and calculating the Z-scores
@@ -174,21 +177,21 @@ from scipy.stats.mstats import winsorize
 
 winsor_life_exp = winsorize(Lifeexp1['Life_Exp'],(0.01,0))
 winsor_a_mortality = winsorize(Lifeexp1['A_Mortality'],(0,0.04))
-winsor_infant_deaths = winsorize(Lifeexp1['Infant_Deaths'],(0,0.05))
+winsor_infant_deaths = winsorize(Lifeexp1['Infant_Deaths'],(0,0.13))
 winsor_Alcohol = winsorize(Lifeexp1['Alcohol'],(0,0.0025))
 winsor_pct_exp = winsorize(Lifeexp1['Pct_Exp'],(0,0.135))
-winsor_HepatitisB = winsorize(Lifeexp1['HepatitisB'],(0.1,0))
+winsor_HepatitisB = winsorize(Lifeexp1['HepatitisB'],(0.11,0))
 winsor_Measles = winsorize(Lifeexp1['Measles'],(0,0.19))
-winsor_Under_Five_Deaths = winsorize(Lifeexp1['Under_Five_Deaths'],(0,0.05))
+winsor_Under_Five_Deaths = winsorize(Lifeexp1['Under_Five_Deaths'],(0,0.15))
 winsor_Polio = winsorize(Lifeexp1['Polio'],(0.1,0))
 winsor_total_exp = winsorize(Lifeexp1['Total_Exp'],(0,0.02))
 winsor_Diphtheria = winsorize(Lifeexp1['Diphtheria'],(0.105,0))
 winsor_HIV = winsorize(Lifeexp1['HIV/AIDS'],(0,0.185))
-winsor_GDP = winsorize(Lifeexp1['GDP'],(0,0.105))
-winsor_Population = winsorize(Lifeexp1['Population'],(0,0.07))
+winsor_GDP = winsorize(Lifeexp1['GDP'],(0,0.15))
+winsor_Population = winsorize(Lifeexp1['Population'],(0,0.15))
 winsor_thinness_1to19yrs = winsorize(Lifeexp1['thin_1-19'],(0,0.035))
 winsor_thinness_5to9yrs = winsorize(Lifeexp1['thin_5-9'],(0,0.035))
-winsor_Income_Comp_Of_Res = winsorize(Lifeexp1['Income_Comp_Of_Res'],(0.05,0))
+winsor_Income_Comp_Of_Res = winsorize(Lifeexp1['Income_Comp_Of_Res'],(0.10,0))
 winsor_Schooling = winsorize(Lifeexp1['Schooling'],(0.025,0.01))
 
 
@@ -306,19 +309,120 @@ plt.show()
 
 
 
+#created a dataset which excludes the year, just for the heatmap
+heat_life_exp = winsor_life_exp[['winsor_life_exp','winsor_a_mortality',
+            'winsor_infant_deaths','winsor_Alcohol',
+            'winsor_pct_exp','winsor_HepatitisB','winsor_Measles',  
+            'winsor_Under_Five_Deaths','winsor_Polio',
+            'winsor_total_exp','winsor_Diphtheria','winsor_HIV',
+            'winsor_GDP','winsor_Population','winsor_thinness_1to19yrs',
+            'winsor_thinness_5to9yrs','winsor_Income_Comp_Of_Res','winsor_Schooling']]
+
+#created a function for heatmap of our dataset.
+def life_exp_heatmap():
+    plt.figure(figsize=(20,15))
+    sns.heatmap(heat_life_exp.corr(), annot=True, fmt='.2g', vmin=-1, vmax=1, center=0, cmap='YlGnBu')
+    plt.ylim(len(heat_life_exp.columns), 0)
+    plt.title('Life Expectancy Correlation Matrix')
+    plt.show()
+life_exp_heatmap()
+
+
+# Line plots showing the behaviours of Life Expectancy and Adult Mortality over the years
+
+sns.lineplot('Year', 'winsor_life_exp', data=winsor_life_exp, marker='o')
+plt.title('Life Expectancy by Year')
+plt.show()
+
+sns.lineplot('Year', 'winsor_a_mortality', data=winsor_life_exp, marker='o')
+plt.title('Adult Mortality by Year')
+plt.show()
+
+
+#Scatter plots showing the relationship between Life expectancy and all continuous variables in our winsorized dataset.
+
+
+plt.figure(figsize=(18,40))
+
+plt.subplot(6,3,1)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_a_mortality"])
+plt.title("Life Expectancy vs Adult Mortality")
+
+plt.subplot(6,3,2)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_infant_deaths"])
+plt.title("Life Expectancy vs Infant Deaths")
+
+plt.subplot(6,3,3)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_Alcohol"])
+plt.title("Life Expectancy vs Alcohol")
+
+plt.subplot(6,3,4)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_pct_exp"])
+plt.title("Life Expectancy vs Percentage Exp")
+
+plt.subplot(6,3,5)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_HepatitisB"])
+plt.title("Life Expectancy vs HepatitisB")
+
+plt.subplot(6,3,6)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_Measles"])
+plt.title("Life Expectancy vs Measles")
+
+plt.subplot(6,3,7)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_Under_Five_Deaths"])
+plt.title("Life Expectancy vs Under Five Deaths")
+
+plt.subplot(6,3,8)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_Polio"])
+plt.title("Life Expectancy vs Polio")
+
+plt.subplot(6,3,9)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_total_exp"])
+plt.title("Life Expectancy vs Total Expenditure")
+
+plt.subplot(6,3,10)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_Diphtheria"])
+plt.title("Life Expectancy vs Diphtheria")
+
+plt.subplot(6,3,11)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_HIV"])
+plt.title("Life Expectancy vs HIV")
+
+plt.subplot(6,3,12)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_GDP"])
+plt.title("Life Expectancy vs GDP")
+
+plt.subplot(6,3,13)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_Population"])
+plt.title("Life Expectancy vs Population")
+
+plt.subplot(6,3,14)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_thinness_1to19yrs"])
+plt.title("Life Expectancy vs thinness 1to19 years")
+
+plt.subplot(6,3,15)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_thinness_5to9yrs"])
+plt.title("Life Expectancy vs thinness 5to9 years")
+
+plt.subplot(6,3,16)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_Income_Comp_Of_Res"])
+plt.title("Life Expectancy vs Income Comp Of Resources")
+
+plt.subplot(6,3,17)
+plt.scatter(winsor_life_exp["winsor_life_exp"], winsor_life_exp["winsor_Schooling"])
+plt.title("Life Expectancy vs Schooling")
+
+
+plt.show()
 
 
 
-
-
-
-
-
-
-
-
-
-
+#Let us review a scatter plot showing the relationship between Income composition of resources and schooling.
+plt.figure(figsize=(15,5))
+plt.subplot(1,3,1)
+plt.scatter(winsor_life_exp["winsor_Schooling"], winsor_life_exp["winsor_Income_Comp_Of_Res"])
+plt.title("Schooling vs Income Comp Of Resources")
+plt.show()
 
 
 
