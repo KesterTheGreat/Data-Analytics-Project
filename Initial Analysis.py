@@ -4,10 +4,19 @@ from pandas import DataFrame
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+#pip install plotly
+import plotly.express as px 
+from plotly.offline import download_plotlyjs,  plot
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from sqlalchemy import create_engine
 import warnings
 from scipy import stats
 import seaborn as sns
+#pip install missingno
+import missingno as msno
+import csv
+
 warnings.filterwarnings('ignore')
 
 Lifeexp = pd.read_csv('E:\SCHOOL\CIND 820 PROJECT\Life Expectancy Data.csv', delimiter=',' ,dtype=None, index_col='Country')
@@ -59,6 +68,9 @@ print(PctMissingValues)
 No_of_MissingValues = Lifeexp.isnull().sum()  
 print(No_of_MissingValues)
 
+
+#visualization showing missing values across all variables
+msno.matrix(Lifeexp)
 
 #Since almost half of the BMI column is now null. 
 #I've decided to drop this variable completely
@@ -140,8 +152,6 @@ plt.show()
 
 #--------------------------------------------------------------------
 
-#Creating a fuction to find the amount and percentage of outliers in each variable
-
 def no_of_outliers(col, data=Lifeexp1):
     
     print("\n"+15*'-' + col + 15*'-'+"\n")
@@ -150,14 +160,18 @@ def no_of_outliers(col, data=Lifeexp1):
     iqr = q75 - q25
     min_val = q25 - (iqr*1.5)
     max_val = q75 + (iqr*1.5)
+    
     no_of_outliers = len(np.where((data[col] > max_val) | (data[col] < min_val))[0])
-    pct_of_outliers = round(no_of_outliers/len(data[col])*100, 2)
+    pct_of_outliers = round(no_of_outliers/len(data[col])*100, 2) 
+    
     print('Number of outliers: {}'.format(no_of_outliers))
     print('Percent of data that is outlier: {}%'.format(pct_of_outliers))
+    
 outlier_list = list(Lifeexp2)
 for col in outlier_list:
     no_of_outliers(col)
-    
+
+
 #Descriptive statistics
 print(Lifeexp2.describe())
 
@@ -305,13 +319,150 @@ plt.title("Life Expectancy by country status")
 plt.show()
 
 
-# Life expectancy for each individual country
-life_exp_country = winsor_life_exp.groupby('Country')['winsor_life_exp'].mean()
-life_exp_country.plot(kind='bar', figsize=(50,15), fontsize=13)
-plt.xlabel("Country",fontsize=35)
-plt.ylabel("Average Life Expectancy",fontsize=35)
-plt.title("Life Expectancy of each Country",fontsize=40)
-plt.show()
+#creating a copy of our original dataset but reseting country index which lets us call that column much easily.
+
+life_exp_visual = winsor_life_exp.copy(deep = True)
+life_exp_visual.reset_index(level=0, inplace=True)
+print(life_exp_visual)
+
+
+#Utilizing the Plotly library to display 3 world maps, each displaying either the Life Expectancy, Income Composition of Resources, or No of Years of Schooling per country
+
+#ISO list obtained from UN TRADE STATISTICS KNOWLEDGE
+#Decided it was a better alternative to making 193 countries into a dictionary
+
+country_map_list = {
+'ABW':'Aruba', 'AFG':'Afghanistan','AGO':'Angola','AIA':'Anguilla','ALA':'Åland Islands','ALB':'Albania',
+'AND':'Andorra','ARE':'United Arab Emirates','ARG':'Argentina','ARM':'Armenia','ASM':'American Samoa',
+'ATA':'Antarctica','ATF':'French Southern Territories','ATG':'Antigua and Barbuda','AUS':'Australia',
+'AUT':'Austria','AZE':'Azerbaijan','BDI':'Burundi','BEL':'Belgium','BEN':'Benin',
+'BES':'Bonaire, Sint Eustatius and Saba','BFA':'Burkina Faso','BGD':'Bangladesh','BGR':'Bulgaria',
+'BHR':'Bahrain','BHS':'Bahamas','BIH':'Bosnia and Herzegovina','BLM':'Saint Barthélemy','BLR':'Belarus',
+'BLZ':'Belize','BMU':'Bermuda','BOL':'Bolivia (Plurinational State of)','BRA':'Brazil','BRB':'Barbados',
+'BRN':'Brunei Darussalam','BTN':'Bhutan','BVT':'Bouvet Island','BWA':'Botswana','CAF':'Central African Republic',
+'CAN':'Canada','CCK':'Cocos (Keeling) Islands','CHE':'Switzerland','CHL':'Chile','CHN':'China',
+'CIV':'Côte d\'Ivoire','CMR':'Cameroon','COD':'Democratic Republic of the Congo','COG':'Congo',
+'COK':'Cook Islands','COL':'Colombia','COM':'Comoros','CPV':'Cabo Verde','CRI':'Costa Rica','CUB':'Cuba',
+'CUW':'Curaçao','CXR':'Christmas Island','CYM':'Cayman Islands','CYP':'Cyprus','CZE':'Czechia',
+'DEU':'Germany','DJI':'Djibouti','DMA':'Dominica','DNK':'Denmark','DOM':'Dominican Republic','DZA':'Algeria',
+'ECU':'Ecuador','EGY':'Egypt','ERI':'Eritrea','ESH':'Western Sahara','ESP':'Spain','EST':'Estonia',
+'ETH':'Ethiopia','FIN':'Finland','FJI':'Fiji','FLK':'Falkland Islands (Malvinas)','FRA':'France',
+'FRO':'Faroe Islands','FSM':'Micronesia (Federated States of)','GAB':'Gabon',
+'GBR':'United Kingdom of Great Britain and Northern Ireland','GEO':'Georgia','GGY':'Guernsey','GHA':'Ghana',
+'GIB':'Gibraltar','GIN':'Guinea','GLP':'Guadeloupe','GMB':'Gambia','GNB':'Guinea-Bissau',
+'GNQ':'Equatorial Guinea','GRC':'Greece','GRD':'Grenada','GRL':'Greenland','GTM':'Guatemala',
+'GUF':'French Guiana','GUM':'Guam','GUY':'Guyana','HKG':'Hong Kong','HMD':'Heard Island and McDonald Islands',
+'HND':'Honduras','HRV':'Croatia','HTI':'Haiti','HUN':'Hungary','IDN':'Indonesia','IMN':'Isle of Man',
+'IND':'India','IOT':'British Indian Ocean Territory','IRL':'Ireland','IRN':'Iran (Islamic Republic of)',
+'IRQ':'Iraq','ISL':'Iceland','ISR':'Israel','ITA':'Italy','JAM':'Jamaica','JEY':'Jersey','JOR':'Jordan',
+'JPN':'Japan','KAZ':'Kazakhstan','KEN':'Kenya','KGZ':'Kyrgyzstan','KHM':'Cambodia','KIR':'Kiribati',
+'KNA':'Saint Kitts and Nevis','KOR':'Republic of Korea','KWT':'Kuwait','LAO':'Lao People\'s Democratic Republic',
+'LBN':'Lebanon','LBR':'Liberia','LBY':'Libya','LCA':'Saint Lucia', 'LIE':'Liechtenstein','LKA':'Sri Lanka',
+'LSO':'Lesotho','LTU':'Lithuania','LUX':'Luxembourg','LVA':'Latvia','MAC':'Macao',
+'MAF':'Saint Martin (French part)','MAR':'Morocco','MCO':'Monaco','MDA':'Republic of Moldova',
+'MDG':'Madagascar','MDV':'Maldives','MEX':'Mexico','MHL':'Marshall Islands','MKD':'North Macedonia',
+'MLI':'Mali','MLT':'Malta','MMR':'Myanmar','MNE':'Montenegro','MNG':'Mongolia','MNP':'Northern Mariana Islands',
+'MOZ':'Mozambique','MRT':'Mauritania','MSR':'Montserrat','MTQ':'Martinique','MUS':'Mauritius','MWI':'Malawi',
+'MYS':'Malaysia','MYT':'Mayotte','NAM':'Namibia','NCL':'New Caledonia','NER':'Niger','NFK':'Norfolk Island',
+'NGA':'Nigeria','NIC':'Nicaragua','NIU':'Niue','NLD':'Netherlands','NOR':'Norway','NPL':'Nepal','NRU':'Nauru',
+'NZL':'New Zealand','OMN':'Oman','PAK':'Pakistan','PAN':'Panama','PCN':'Pitcairn','PER':'Peru','PHL':'Philippines',
+'PLW':'Palau','PNG':'Papua New Guinea','POL':'Poland','PRI':'Puerto Rico','PRK':'Democratic People\'s Republic of Korea',
+'PRT':'Portugal','PRY':'Paraguay','PSE':'Palestine, State of','PYF':'French Polynesia','QAT':'Qatar','REU':'Réunion',
+'ROU':'Romania','RUS':'Russian Federation','RWA':'Rwanda','SAU':'Saudi Arabia','SDN':'Sudan','SEN':'Senegal',
+'SGP':'Singapore','SGS':'South Georgia and the South Sandwich Islands','SHN':'Saint Helena, Ascension and Tristan da Cunha',
+'SJM':'Svalbard and Jan Mayen','SLB':'Solomon Islands','SLE':'Sierra Leone','SLV':'El Salvador','SMR':'San Marino',
+'SOM':'Somalia','SPM':'Saint Pierre and Miquelon','SRB':'Serbia','SSD':'South Sudan','STP':'Sao Tome and Principe',
+'SUR':'Suriname','SVK':'Slovakia','SVN':'Slovenia','SWE':'Sweden','SWZ':'Eswatini','SXM':'Sint Maarten (Dutch part)',
+'SYC':'Seychelles','SYR':'Syrian Arab Republic','TCA':'Turks and Caicos Islands','TCD':'Chad','TGO':'Togo',
+'THA':'Thailand','TJK':'Tajikistan','TKL':'Tokelau','TKM':'Turkmenistan','TLS':'Timor-Leste','TON':'Tonga',
+'TTO':'Trinidad and Tobago','TUN':'Tunisia','TUR':'Turkey','TUV':'Tuvalu','TWN':'Taiwan, Province of China',
+'TZA':'United Republic of Tanzania','UGA':'Uganda','UKR':'Ukraine','UMI':'United States Minor Outlying Islands',
+'URY':'Uruguay','USA':'United States of America','UZB':'Uzbekistan','VAT':'Holy See','VCT':'Saint Vincent and the Grenadines',
+'VEN':'Venezuela (Bolivarian Republic of)','VGB':'Virgin Islands (British)','VIR':'Virgin Islands (U.S.)','VNM':'Viet Nam',
+'VUT':'Vanuatu','WLF':'Wallis and Futuna','WSM':'Samoa','YEM':'Yemen','ZAF':'South Africa','ZMB':'Zambia',
+'ZWE':'Zimbabwe'}
+
+# Turning the above dict into dataframe
+
+country_map_df = pd.DataFrame.from_dict(country_map_list, orient='index', columns=['Country'])
+
+# I grouped the new dataframe by Country and combined the variables we want to plot with their respective mathematical classifications
+
+
+country_map_agg = life_exp_visual.groupby('Country')['winsor_life_exp', 'Status', 
+                                               'winsor_Income_Comp_Of_Res', 'winsor_Schooling'].agg(
+    {'winsor_life_exp':'mean', 'Status':'min', 'winsor_Income_Comp_Of_Res':'mean', 'winsor_Schooling':'mean'}) 
+                                                   
+# Merging country_map_df and country_map_agg together
+
+merged_country_map = pd.merge(country_map_agg, country_map_df, left_index=True, right_on='Country')
+
+#Utilizing the Plotly library to display 3 world maps
+W_map = make_subplots(
+    rows=3, cols=1,
+    row_heights=[0.25, 0.25, 0.25],
+    vertical_spacing=0.025,
+    subplot_titles=("Life Expectancy by Country", "Income Composition of Resources", "Average No of Years of Schooling per country"),
+    specs=[[{"type": "Choropleth", "rowspan": 1}], [{"type": "Choropleth", "rowspan": 1}], [{"type": "Choropleth", "rowspan": 1}]])
+
+# Life Expectancy
+W_map.add_trace(go.Choropleth(locations = merged_country_map.index,
+                  z= merged_country_map['winsor_life_exp'], 
+                  text=merged_country_map['Country'],
+                  name='Life Expectancy',
+                  colorbar={'title':'Life<br>Expectancy', 'len':.25, 'x':.99,'y':.896},
+                  colorscale='inferno'), row=1,col=1)
+
+# Income Composition of Resources
+W_map.add_trace(go.Choropleth(locations = merged_country_map.index,
+                  z= merged_country_map['winsor_Income_Comp_Of_Res'], 
+                  text=merged_country_map['Country'],
+                  name='Income Composition of Resources',
+                  colorbar={'title':'Resources<br>Index', 'len':.24, 'x':.99,'y':.378},
+                  colorscale='Portland'), row=2,col=1)
+
+#Average No of Years of Schooling per country
+W_map.add_trace(go.Choropleth(locations = merged_country_map.index,
+                  z= merged_country_map['winsor_Schooling'], 
+                  text=merged_country_map['Country'],
+                  name='Average No of Years of Schooling per country',
+                  colorbar={'title':'Years of<br>Schooling', 'len':.248, 'x':.99,'y':.1275},
+                  colorscale='magma'), row=3,col=1)
+
+W_map.update_layout(margin=dict(r=1, t=30, b=10, l=30),
+                    width=700,
+                    height=1400)
+
+plot(W_map)
+
+
+#Created a Pie Chart displaying the TOP 20 countries with the highest average Life Expectancy
+#This gives us an idea of the countries doing the best.
+
+Life_exp_pie = life_exp_visual.groupby(life_exp_visual['Country'])['winsor_life_exp'].mean()
+Life_exp_pie = pd.DataFrame(index = life_exp_visual["Country"].unique() , data = Life_exp_pie)
+Life_exp_pie = Life_exp_pie.sort_values(by = "winsor_life_exp" , ascending = False)
+Life_exp_pie = Life_exp_pie.head(20)
+ 
+The_pie = px.pie(data_frame = Life_exp_pie , 
+            names = Life_exp_pie.index , 
+            values = "winsor_life_exp" , 
+            template = "seaborn" , 
+             opacity = 1.0 , 
+            color_discrete_sequence=px.colors.sequential.Plasma , 
+            hole = 0.5)
+
+The_pie.update_traces (pull= 0.05 , textinfo = "percent+label" , rotation = 90)
+
+The_pie.update_layout(
+    title = "Pie Chart" , 
+    paper_bgcolor = 'rgb(230, 230 , 230)' , 
+    plot_bgcolor = 'rgb(243, 243 , 243)',
+    annotations=[dict(text='Top 20 Countries with the highest<br>means of life expectancy', font_size=17, showarrow=False)]
+)
+
+plot(The_pie)
+
 
 
 
@@ -429,13 +580,6 @@ plt.subplot(1,3,1)
 plt.scatter(winsor_life_exp["winsor_Schooling"], winsor_life_exp["winsor_Income_Comp_Of_Res"])
 plt.title("Schooling vs Income Comp Of Resources")
 plt.show()
-
-
-
-
-
-
-
 
 
 
