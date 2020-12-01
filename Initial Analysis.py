@@ -43,7 +43,7 @@ print(Lifeexp.dtypes)
 # or to get more explanatory information
 Lifeexp.info()
 
-
+Avg_mort = round(Lifeexp[['A_Mortality','Life_Exp']].mean(),2)
 
 #Preliminary pruning of obvious outliers.
 
@@ -435,6 +435,7 @@ W_map.update_layout(margin=dict(r=1, t=30, b=10, l=30),
 
 plot(W_map)
 
+W_map.write_html("E:\SCHOOL\CIND 820 PROJECT\Themap.html")
 
 #Created a Pie Chart displaying the TOP 20 countries with the highest average Life Expectancy
 #This gives us an idea of the countries doing the best.
@@ -466,24 +467,6 @@ plot(The_pie)
 
 
 
-#created a dataset which excludes the year, just for the heatmap
-heat_life_exp = winsor_life_exp[['winsor_life_exp','winsor_a_mortality',
-            'winsor_infant_deaths','winsor_Alcohol',
-            'winsor_pct_exp','winsor_HepatitisB','winsor_Measles',  
-            'winsor_Under_Five_Deaths','winsor_Polio',
-            'winsor_total_exp','winsor_Diphtheria','winsor_HIV',
-            'winsor_GDP','winsor_Population','winsor_thinness_1to19yrs',
-            'winsor_thinness_5to9yrs','winsor_Income_Comp_Of_Res','winsor_Schooling']]
-
-#created a function for heatmap of our dataset.
-def life_exp_heatmap():
-    plt.figure(figsize=(20,15))
-    sns.heatmap(heat_life_exp.corr(), annot=True, fmt='.2g', vmin=-1, vmax=1, center=0, cmap='YlGnBu')
-    plt.ylim(len(heat_life_exp.columns), 0)
-    plt.title('Life Expectancy Correlation Matrix')
-    plt.show()
-life_exp_heatmap()
-
 
 # Line plots showing the behaviours of Life Expectancy and Adult Mortality over the years
 
@@ -497,7 +480,6 @@ plt.show()
 
 
 #Scatter plots showing the relationship between Life expectancy and all continuous variables in our winsorized dataset.
-
 
 plt.figure(figsize=(18,40))
 
@@ -580,6 +562,300 @@ plt.subplot(1,3,1)
 plt.scatter(winsor_life_exp["winsor_Schooling"], winsor_life_exp["winsor_Income_Comp_Of_Res"])
 plt.title("Schooling vs Income Comp Of Resources")
 plt.show()
+
+    
+    
+    
+#FIRST RESEARCH QUESTION
+#created a dataset which excludes the year, just for the heatmap
+heat_life_exp = winsor_life_exp[['winsor_life_exp','winsor_a_mortality',
+            'winsor_infant_deaths','winsor_Alcohol',
+            'winsor_pct_exp','winsor_HepatitisB','winsor_Measles',  
+            'winsor_Under_Five_Deaths','winsor_Polio',
+            'winsor_total_exp','winsor_Diphtheria','winsor_HIV',
+            'winsor_GDP','winsor_Population','winsor_thinness_1to19yrs',
+            'winsor_thinness_5to9yrs','winsor_Income_Comp_Of_Res','winsor_Schooling']]
+
+#created a function for heatmap of our dataset.
+def life_exp_heatmap():
+    plt.figure(figsize=(20,15))
+    sns.heatmap(heat_life_exp.corr(), annot=True, fmt='.2g', vmin=-1, vmax=1, center=0, cmap='YlGnBu')
+    plt.ylim(len(heat_life_exp.columns), 0)
+    plt.title('Life Expectancy Correlation Matrix')
+    plt.show()
+life_exp_heatmap()
+
+
+#SECOND RESEARCH QUESTION
+round(Lifeexp1[['Status','Life_Exp']].groupby(['Status']).mean(),2)
+long = Lifeexp1.loc[Lifeexp1['Status']=='Developed','Life_Exp']
+short = Lifeexp1.loc[Lifeexp1['Status']=='Developing','Life_Exp']
+stat = stats.ttest_ind(long, short)
+print(stat)
+
+
+
+from sklearn.model_selection import GroupShuffleSplit 
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
+
+
+# PREDICTIVE MODELING
+
+
+#Creating a copy of the dataset which resets the index. This dataset will be used for the modeling 
+life_exp_train = Lifeexp1.copy(deep = True)
+life_exp_train.reset_index(level=0, inplace=True)
+life_exp_train.sort_values(by=['Year'], ascending=True, inplace=True, ignore_index=False)
+print(life_exp_train)
+
+independent = life_exp_train[['Year','winsor_a_mortality',
+            'winsor_infant_deaths','winsor_Alcohol',
+            'winsor_pct_exp','winsor_HepatitisB','winsor_Measles',  
+            'winsor_Under_Five_Deaths','winsor_Polio',
+            'winsor_total_exp','winsor_Diphtheria','winsor_HIV',
+            'winsor_GDP','winsor_Population','winsor_thinness_1to19yrs',
+            'winsor_thinness_5to9yrs','winsor_Income_Comp_Of_Res','winsor_Schooling']]
+ 
+dependent = life_exp_train[['winsor_life_exp']]
+
+#Splitting the dataset into a training and test datasets based on year
+# TRAIN = 2000 - 2013
+# TEST = 2014 - 2015
+
+gs = GroupShuffleSplit(n_splits=2, train_size=.9, random_state=42)
+
+train_ix, test_ix = next(gs.split(independent, dependent, groups = independent.Year))
+
+X_train = independent.loc[train_ix]
+y_train = dependent.loc[train_ix]
+X_test = independent.loc[test_ix]
+y_test = dependent.loc[test_ix]
+
+y_train = np.reshape(y_train , (2572 , ))
+y_test = np.reshape(y_test , (366 , ))
+X_train.shape , X_test.shape , y_train.shape , y_test.shape
+
+
+#Creating a dataset with only the most correlated attributes - Trimmed Dataset
+Final_X = life_exp_train[['Year','winsor_a_mortality',
+            'winsor_HIV','winsor_Income_Comp_Of_Res','winsor_Schooling']]
+ 
+Final_Y = life_exp_train[['winsor_life_exp']]
+
+#Splitting the dataset into a training and test datasets based on year
+# TRAIN = 2000 - 2013
+# TEST = 2014 - 2015
+
+gs1 = GroupShuffleSplit(n_splits=2, train_size=.9, random_state=42)
+train_ix, test_ix = next(gs1.split(Final_X, Final_Y, groups = Final_X.Year))
+X_trainF = Final_X.loc[train_ix]
+y_trainF = Final_Y.loc[train_ix]
+X_testF = Final_X.loc[test_ix]
+y_testF = Final_Y.loc[test_ix]
+
+
+# ---------------------------------------------------
+
+# LINEAR REGRESSION
+
+# Import LASSO LINEAR REGRESSION MODEL
+
+from sklearn.linear_model import Lasso
+from sklearn.metrics import r2_score
+
+#Full Dataset Linear Regression
+lr = Lasso(alpha = 0.001 , max_iter = 5000)
+lr.fit(X_train , y_train)
+lr_predict = lr.predict(X_test)
+print('LASSO FULL Dataset MAE = ',mean_absolute_error(y_test,lr_predict))
+print('LASSO FULL Dataset RMSE = ',np.sqrt(mean_squared_error(y_test,lr_predict))) 
+print('LASSO FULL Dataset RSquared Score = ',r2_score(y_test, lr_predict))
+
+
+
+#Trimmed Dataset Linear Regression
+lr1 = Lasso(alpha = 0.001 , max_iter = 5000)
+lr1.fit(X_trainF , y_trainF)
+lr_predict1 = lr1.predict(X_testF)
+print('LASSO TRIMMED Dataset MAE = ',mean_absolute_error(y_testF,lr_predict1))
+print('LASSO TRIMMED Dataset RMSE = ',np.sqrt(mean_squared_error(y_testF,lr_predict1))) 
+print('LASSO TRIMMED Dataset RSquared Score = ',r2_score(y_testF, lr_predict1))
+
+
+
+
+
+
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+
+# NON LINEAR REGRESSION - FULL DATASET
+
+# DECISION TREE REGRESSION MODEL
+
+Life_tree = DecisionTreeRegressor(max_depth=8, min_samples_leaf=0.13, random_state=3)
+Life_tree.fit(X_train, y_train)
+
+# Print MAE, RMSE and R-squared value for regression tree 'Life_tree' on testing data
+pred_test_tree = Life_tree.predict(X_test)
+print('Decision Tree FULL Dataset MAE (weak) = ',mean_absolute_error(y_test,pred_test_tree))
+print('Decision Tree FULL Dataset RMSE (weak) = ',np.sqrt(mean_squared_error(y_test,pred_test_tree))) 
+print('Decision Tree FULL Dataset RSquared Score (weak) = ', r2_score(y_test, pred_test_tree))
+
+
+#We will change the value of the parameter 'max_depth' to see how that affects the model performance.
+
+#Changed Parameters (Max Depth)
+Life_tree1 = DecisionTreeRegressor(max_depth=5)
+Life_tree1.fit(X_train, y_train)
+
+
+# Print MAE, RMSE and R-squared value for regression tree 'Life_tree1' on testing data
+Test_pred = Life_tree1.predict(X_test)
+print('Decision Tree FULL Dataset MAE = ',mean_absolute_error(y_test,Test_pred))
+print('Decision Tree FULL Dataset RMSE = ',np.sqrt(mean_squared_error(y_test,Test_pred))) 
+print('Decision Tree FULL Dataset RSquared Score = ',r2_score(y_test, Test_pred)) 
+
+
+
+
+# RANDOM FOREST REGRESSION MODEL
+
+model_rf = RandomForestRegressor(n_estimators=500, oob_score=True, random_state=100)
+model_rf.fit(X_train, y_train) 
+pred_test_rf = model_rf.predict(X_test)
+print('Random Forest FULL Dataset MAE = ',mean_absolute_error(y_test,pred_test_rf))
+print('Random Forest FULL Dataset RMSE = ',np.sqrt(mean_squared_error(y_test,pred_test_rf)))
+print('Random Forest FULL Dataset RSquared Score = ',r2_score(y_test, pred_test_rf))
+#plt.scatter(y_test, pred_test_rf)
+
+
+# -------------------------------------------------------------------------
+
+
+# NON LINEAR REGRESSION - TRIMMED DATASET
+
+# DECISION TREE REGRESSION MODEL
+
+Life_tree2 = DecisionTreeRegressor(max_depth=5)
+Life_tree2.fit(X_trainF, y_trainF)
+
+# Print MAE, RMSE and R-squared value for regression tree 'Life_tree2' on testing data
+Test_pred1 = Life_tree2.predict(X_testF)
+print('Decision Tree Trimmed Dataset MAE = ',mean_absolute_error(y_testF,Test_pred1))
+print('Decision Tree Trimmed Dataset RMSE = ',np.sqrt(mean_squared_error(y_testF,Test_pred1))) 
+print('Decision Tree Trimmed Dataset RSquared Score = ',r2_score(y_testF, Test_pred1)) 
+
+
+
+
+# RANDOM FOREST REGRESSION MODEL
+
+model_rf1 = RandomForestRegressor(n_estimators=500, oob_score=True, random_state=100)
+model_rf1.fit(X_trainF, y_trainF) 
+pred_test_rf1 = model_rf1.predict(X_testF)
+print('Random Forest Trimmed Dataset MAE = ',mean_absolute_error(y_testF,pred_test_rf1))
+print('Random Forest Trimmed Dataset RMSE = ',np.sqrt(mean_squared_error(y_testF,pred_test_rf1)))
+print('Random Forest Trimmed Dataset RSquared Score = ',r2_score(y_testF, pred_test_rf1))
+
+ 
+
+
+# We observed that the Random Forest model outperforms 
+# the Regression Tree models, with the test set RMSE and R-squared values
+# of 2.3 thousand and 92.3 percent, respectively. This is close to 
+# the most ideal result of an R-squared value of 1, indicating the superior 
+# performance of the Random Forest algorithm.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
