@@ -254,7 +254,7 @@ for variable,i in lifeexp_dict2.items():
 plt.show()  
 
 
-Lifeexp1.describe()
+desc = Lifeexp1.describe()
 
 
 
@@ -401,7 +401,7 @@ merged_country_map = pd.merge(country_map_agg, country_map_df, left_index=True, 
 W_map = make_subplots(
     rows=3, cols=1,
     row_heights=[0.25, 0.25, 0.25],
-    vertical_spacing=0.025,
+    vertical_spacing=0.015,
     subplot_titles=("Life Expectancy by Country", "Income Composition of Resources", "Average No of Years of Schooling per country"),
     specs=[[{"type": "Choropleth", "rowspan": 1}], [{"type": "Choropleth", "rowspan": 1}], [{"type": "Choropleth", "rowspan": 1}]])
 
@@ -410,7 +410,7 @@ W_map.add_trace(go.Choropleth(locations = merged_country_map.index,
                   z= merged_country_map['winsor_life_exp'], 
                   text=merged_country_map['Country'],
                   name='Life Expectancy',
-                  colorbar={'title':'Life<br>Expectancy', 'len':.25, 'x':.99,'y':.896},
+                  colorbar={'title':'Life<br>Expectancy', 'len':.25, 'x':.99,'y':.850},
                   colorscale='inferno'), row=1,col=1)
 
 # Income Composition of Resources
@@ -418,7 +418,7 @@ W_map.add_trace(go.Choropleth(locations = merged_country_map.index,
                   z= merged_country_map['winsor_Income_Comp_Of_Res'], 
                   text=merged_country_map['Country'],
                   name='Income Composition of Resources',
-                  colorbar={'title':'Resources<br>Index', 'len':.24, 'x':.99,'y':.378},
+                  colorbar={'title':'Resources<br>Index', 'len':.24, 'x':.99,'y':.505},
                   colorscale='Portland'), row=2,col=1)
 
 #Average No of Years of Schooling per country
@@ -426,7 +426,7 @@ W_map.add_trace(go.Choropleth(locations = merged_country_map.index,
                   z= merged_country_map['winsor_Schooling'], 
                   text=merged_country_map['Country'],
                   name='Average No of Years of Schooling per country',
-                  colorbar={'title':'Years of<br>Schooling', 'len':.248, 'x':.99,'y':.1275},
+                  colorbar={'title':'Years of<br>Schooling', 'len':.248, 'x':.99,'y':.169},
                   colorscale='magma'), row=3,col=1)
 
 W_map.update_layout(margin=dict(r=1, t=30, b=10, l=30),
@@ -472,10 +472,14 @@ plot(The_pie)
 
 sns.lineplot('Year', 'winsor_life_exp', data=winsor_life_exp, marker='o')
 plt.title('Life Expectancy by Year')
+plt.xlabel("Year",fontsize=12)
+plt.ylabel("Average Life Expectancy",fontsize=12)
 plt.show()
 
 sns.lineplot('Year', 'winsor_a_mortality', data=winsor_life_exp, marker='o')
 plt.title('Adult Mortality by Year')
+plt.xlabel("Year",fontsize=12)
+plt.ylabel("Adult Mortality",fontsize=12)
 plt.show()
 
 
