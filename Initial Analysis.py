@@ -12,6 +12,7 @@ from plotly.subplots import make_subplots
 from sqlalchemy import create_engine
 import warnings
 from scipy import stats
+from statsmodels.stats import weightstats as stests
 import seaborn as sns
 #pip install missingno
 import missingno as msno
@@ -401,7 +402,7 @@ merged_country_map = pd.merge(country_map_agg, country_map_df, left_index=True, 
 W_map = make_subplots(
     rows=3, cols=1,
     row_heights=[0.25, 0.25, 0.25],
-    vertical_spacing=0.015,
+    vertical_spacing=0.100,
     subplot_titles=("Life Expectancy by Country", "Income Composition of Resources", "Average No of Years of Schooling per country"),
     specs=[[{"type": "Choropleth", "rowspan": 1}], [{"type": "Choropleth", "rowspan": 1}], [{"type": "Choropleth", "rowspan": 1}]])
 
@@ -410,7 +411,7 @@ W_map.add_trace(go.Choropleth(locations = merged_country_map.index,
                   z= merged_country_map['winsor_life_exp'], 
                   text=merged_country_map['Country'],
                   name='Life Expectancy',
-                  colorbar={'title':'Life<br>Expectancy', 'len':.25, 'x':.99,'y':.850},
+                  colorbar={'title':'Life<br>Expectancy', 'len':.25, 'x':.9998,'y':.870},
                   colorscale='inferno'), row=1,col=1)
 
 # Income Composition of Resources
@@ -418,7 +419,7 @@ W_map.add_trace(go.Choropleth(locations = merged_country_map.index,
                   z= merged_country_map['winsor_Income_Comp_Of_Res'], 
                   text=merged_country_map['Country'],
                   name='Income Composition of Resources',
-                  colorbar={'title':'Resources<br>Index', 'len':.24, 'x':.99,'y':.505},
+                  colorbar={'title':'Resources<br>Index', 'len':.24, 'x':.9999,'y':.510},
                   colorscale='Portland'), row=2,col=1)
 
 #Average No of Years of Schooling per country
@@ -426,12 +427,12 @@ W_map.add_trace(go.Choropleth(locations = merged_country_map.index,
                   z= merged_country_map['winsor_Schooling'], 
                   text=merged_country_map['Country'],
                   name='Average No of Years of Schooling per country',
-                  colorbar={'title':'Years of<br>Schooling', 'len':.248, 'x':.99,'y':.169},
+                  colorbar={'title':'Years of<br>Schooling', 'len':.248, 'x':.9999,'y':.140},
                   colorscale='magma'), row=3,col=1)
 
-W_map.update_layout(margin=dict(r=1, t=30, b=10, l=30),
-                    width=700,
-                    height=1400)
+W_map.update_layout(margin=dict(r=1, t=30, b=50, l=30),
+                    width=1400,
+                    height=3000)
 
 plot(W_map)
 
@@ -591,11 +592,13 @@ life_exp_heatmap()
 
 
 #SECOND RESEARCH QUESTION
-round(Lifeexp1[['Status','Life_Exp']].groupby(['Status']).mean(),2)
-long = Lifeexp1.loc[Lifeexp1['Status']=='Developed','Life_Exp']
-short = Lifeexp1.loc[Lifeexp1['Status']=='Developing','Life_Exp']
-stat = stats.ttest_ind(long, short)
-print(stat)
+print(round(Lifeexp1[['Status','Life_Exp']].groupby(['Status']).mean(),2))
+long1 = Lifeexp1.loc[Lifeexp1['Status']=='Developed','Life_Exp']
+short1 = Lifeexp1.loc[Lifeexp1['Status']=='Developing','Life_Exp']
+stat1 = stests.ztest(long1, short1)
+print(stat1)
+
+
 
 
 
@@ -689,175 +692,78 @@ print('LASSO TRIMMED Dataset RSquared Score = ',r2_score(y_testF, lr_predict1))
 
 
 
+# MACHINE LEARNING MODELS
 
 
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor
 
-# NON LINEAR REGRESSION - FULL DATASET
+#pip install six
+from six import StringIO  
+from IPython.display import Image  
+from sklearn.tree import export_graphviz
+#pip install pydotplus
+import pydotplus
+#install graphviz for decision tree graph.
+#https://graphviz.gitlab.io/_pages/Download/windows/graphviz-2.38.msi
+#create a path to the decision tree
+os.environ["PATH"] += os.pathsep + 'C:/Program Files (x86)/Graphviz2.38/bin/'
 
 # DECISION TREE REGRESSION MODEL
 
-Life_tree = DecisionTreeRegressor(max_depth=8, min_samples_leaf=0.13, random_state=3)
-Life_tree.fit(X_train, y_train)
-
-# Print MAE, RMSE and R-squared value for regression tree 'Life_tree' on testing data
-pred_test_tree = Life_tree.predict(X_test)
-print('Decision Tree FULL Dataset MAE (weak) = ',mean_absolute_error(y_test,pred_test_tree))
-print('Decision Tree FULL Dataset RMSE (weak) = ',np.sqrt(mean_squared_error(y_test,pred_test_tree))) 
-print('Decision Tree FULL Dataset RSquared Score (weak) = ', r2_score(y_test, pred_test_tree))
-
-
-#We will change the value of the parameter 'max_depth' to see how that affects the model performance.
-
-#Changed Parameters (Max Depth)
-Life_tree1 = DecisionTreeRegressor(max_depth=5)
+Life_tree1 = DecisionTreeRegressor(criterion= 'mse', max_depth=4)
 Life_tree1.fit(X_train, y_train)
 
+dot_data = StringIO()
 
-# Print MAE, RMSE and R-squared value for regression tree 'Life_tree1' on testing data
+export_graphviz(Life_tree1, out_file=dot_data,  
+                filled=True, rounded=True,
+                special_characters=True, feature_names=list(independent), class_names=sorted(dependent.nunique()))
+graph = pydotplus.graph_from_dot_data(dot_data.getvalue())  
+Image(graph.create_png())  
+
+# Print MAE and RMSE values for regression tree 'Life_tree1' (Full Dataset)
 Test_pred = Life_tree1.predict(X_test)
 print('Decision Tree FULL Dataset MAE = ',mean_absolute_error(y_test,Test_pred))
 print('Decision Tree FULL Dataset RMSE = ',np.sqrt(mean_squared_error(y_test,Test_pred))) 
-print('Decision Tree FULL Dataset RSquared Score = ',r2_score(y_test, Test_pred)) 
 
+# TRIMMED DATASET
+Life_tree2 = DecisionTreeRegressor(max_depth=4)
+Life_tree2.fit(X_trainF, y_trainF)
+# Print MAE, RMSE and R-squared value for regression tree 'Life_tree2' (Trimmed Dataset)
+Test_pred1 = Life_tree2.predict(X_testF)
+print('Decision Tree Trimmed Dataset MAE = ',mean_absolute_error(y_testF,Test_pred1))
+print('Decision Tree Trimmed Dataset RMSE = ',np.sqrt(mean_squared_error(y_testF,Test_pred1))) 
 
 
 
 # RANDOM FOREST REGRESSION MODEL
+from sklearn.ensemble import RandomForestRegressor
+
+#FULL DATASET
 
 model_rf = RandomForestRegressor(n_estimators=500, oob_score=True, random_state=100)
 model_rf.fit(X_train, y_train) 
 pred_test_rf = model_rf.predict(X_test)
 print('Random Forest FULL Dataset MAE = ',mean_absolute_error(y_test,pred_test_rf))
 print('Random Forest FULL Dataset RMSE = ',np.sqrt(mean_squared_error(y_test,pred_test_rf)))
-print('Random Forest FULL Dataset RSquared Score = ',r2_score(y_test, pred_test_rf))
 #plt.scatter(y_test, pred_test_rf)
 
 
-# -------------------------------------------------------------------------
-
-
-# NON LINEAR REGRESSION - TRIMMED DATASET
-
-# DECISION TREE REGRESSION MODEL
-
-Life_tree2 = DecisionTreeRegressor(max_depth=5)
-Life_tree2.fit(X_trainF, y_trainF)
-
-# Print MAE, RMSE and R-squared value for regression tree 'Life_tree2' on testing data
-Test_pred1 = Life_tree2.predict(X_testF)
-print('Decision Tree Trimmed Dataset MAE = ',mean_absolute_error(y_testF,Test_pred1))
-print('Decision Tree Trimmed Dataset RMSE = ',np.sqrt(mean_squared_error(y_testF,Test_pred1))) 
-print('Decision Tree Trimmed Dataset RSquared Score = ',r2_score(y_testF, Test_pred1)) 
-
-
-
-
-# RANDOM FOREST REGRESSION MODEL
+# TRIMMED DATASET
 
 model_rf1 = RandomForestRegressor(n_estimators=500, oob_score=True, random_state=100)
 model_rf1.fit(X_trainF, y_trainF) 
 pred_test_rf1 = model_rf1.predict(X_testF)
 print('Random Forest Trimmed Dataset MAE = ',mean_absolute_error(y_testF,pred_test_rf1))
 print('Random Forest Trimmed Dataset RMSE = ',np.sqrt(mean_squared_error(y_testF,pred_test_rf1)))
-print('Random Forest Trimmed Dataset RSquared Score = ',r2_score(y_testF, pred_test_rf1))
 
  
 
 
-# We observed that the Random Forest model outperforms 
-# the Regression Tree models, with the test set RMSE and R-squared values
-# of 2.3 thousand and 92.3 percent, respectively. This is close to 
-# the most ideal result of an R-squared value of 1, indicating the superior 
+# I observed that the Random Forest model outperforms 
+# the Decision Tree models, with the test set RMSE value
+# of 2.3 thousand. This indicates the superior 
 # performance of the Random Forest algorithm.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
